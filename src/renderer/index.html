@@ -81,6 +81,30 @@
         </main>
     </div>
 
+    <div id="createComponentDialog" class="modal-backdrop" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="createComponentTitle">
+            <div class="modal-header">
+                <h2 id="createComponentTitle">New AutoComponent</h2>
+            </div>
+            <label class="modal-field">
+                <span>Name</span>
+                <input id="createComponentName" type="text" autocomplete="off" value="NewNetworkComponent">
+            </label>
+            <label class="modal-field">
+                <span>Type</span>
+                <select id="createComponentKind">
+                    <option value="autocomponent">AutoComponent</option>
+                    <option value="scriptcanvas-nodeable">ScriptCanvas Nodeable</option>
+                    <option value="autopackets">AutoPackets</option>
+                </select>
+            </label>
+            <div class="modal-actions">
+                <button id="cancelCreateComponentButton" class="text-button" type="button">Cancel</button>
+                <button id="confirmCreateComponentButton" class="action-button" type="button">Create</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

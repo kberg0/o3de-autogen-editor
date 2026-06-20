@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xs:simpleType name="BooleanString">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+            <xs:enumeration value="True"/>
+            <xs:enumeration value="False"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="PacketGroup">
+        <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="Include">
+                    <xs:complexType>
+                        <xs:attribute name="File" type="xs:string" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Packet">
+                    <xs:complexType>
+                        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                            <xs:element name="Member">
+                                <xs:complexType>
+                                    <xs:attribute name="Type" type="xs:string" use="required"/>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Init" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Desc" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Container" type="ContainerType" use="optional"/>
+                                    <xs:attribute name="Count" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Min" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Max" type="xs:string" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Desc" type="xs:string" use="optional"/>
+                        <xs:attribute name="HandshakePacket" type="BooleanString" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+            <xs:attribute name="Name" type="xs:string" use="required"/>
+            <xs:attribute name="PacketStart" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:simpleType name="ContainerType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="None"/>
+            <xs:enumeration value="Array"/>
+            <xs:enumeration value="Vector"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

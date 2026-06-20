@@ -110,7 +110,12 @@ const elements = {
     documentName: document.getElementById("documentName"),
     statusText: document.getElementById("statusText"),
     issueCount: document.getElementById("issueCount"),
-    issues: document.getElementById("issues")
+    issues: document.getElementById("issues"),
+    createComponentDialog: document.getElementById("createComponentDialog"),
+    createComponentName: document.getElementById("createComponentName"),
+    createComponentKind: document.getElementById("createComponentKind"),
+    confirmCreateComponentButton: document.getElementById("confirmCreateComponentButton"),
+    cancelCreateComponentButton: document.getElementById("cancelCreateComponentButton")
 };
 
 window.addEventListener("DOMContentLoaded", initialize);
@@ -160,6 +165,7 @@ function loadDefaultSchemas(result) {
     if (result.schemas) {
         state.schemas.autocomponent = parseSchema(result.schemas.autocomponent.text);
         state.schemas.scriptcanvas = parseSchema(result.schemas.scriptcanvas.text);
+        state.schemas.autopackets = parseSchema(result.schemas.autopackets.text);
         state.schema = state.schemas.autocomponent;
         state.schemaPath = result.schemas.autocomponent.filePath;
         return;
@@ -295,31 +301,142 @@ async function createComponent() {
         return;
     }
 
-    if (!state.selectedCmakePath) {
+    const targetCmakePath = selectedTargetCmakePath();
+    if (!targetCmakePath) {
         setStatus("Choose a CMake file before adding an AutoComponent.");
         return;
     }
 
-    const componentName = prompt("New AutoComponent name", "NewNetworkComponent");
-    if (!componentName) {
+    const request = await askForComponentRequest();
+    if (!request) {
         return;
     }
 
     try {
-        const project = await api.createComponent({
-            componentName,
-            targetCmakePath: state.selectedCmakePath
+        const response = await api.createComponent({
+            componentName: request.name,
+            componentKind: request.kind,
+            targetCmakePath
         });
-        const sanitizedName = componentName.replace(/[^A-Za-z0-9_]/g, "");
-        await loadProject(project);
-        const created = project.components.find((component) => component.name === sanitizedName || component.name === `${sanitizedName}Component`);
+        const project = response.project || response;
+        await loadProject(project, "");
+        const created = response.createdPath
+            ? project.components.find((component) => component.path === response.createdPath)
+            : findCreatedComponent(project, request);
         if (created) {
             await selectComponent(created.path);
         }
-        setStatus("AutoComponent created and added to CMake");
+        setStatus(`${kindLabel(request.kind)} created and added to CMake`);
     } catch (error) {
         setStatus(`Create failed: ${error.message}`);
     }
+}
+
+function selectedTargetCmakePath() {
+    return state.selectedCmakePath || elements.cmakeTargetSelect.value || "";
+}
+
+function askForComponentRequest() {
+    return new Promise((resolve) => {
+        const dialog = elements.createComponentDialog;
+        const input = elements.createComponentName;
+        const kindSelect = elements.createComponentKind;
+        const confirmButton = elements.confirmCreateComponentButton;
+        const cancelButton = elements.cancelCreateComponentButton;
+        let settled = false;
+
+        const cleanup = () => {
+            dialog.hidden = true;
+            confirmButton.removeEventListener("click", confirm);
+            cancelButton.removeEventListener("click", cancel);
+            dialog.removeEventListener("click", clickOutside);
+            input.removeEventListener("keydown", handleKeyDown);
+            kindSelect.removeEventListener("change", changeKind);
+        };
+
+        const finish = (value) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            cleanup();
+            resolve(value);
+        };
+
+        const confirm = () => {
+            const name = input.value.trim();
+            finish(name ? { name, kind: kindSelect.value } : null);
+        };
+        const cancel = () => finish(null);
+        const clickOutside = (event) => {
+            if (event.target === dialog) {
+                cancel();
+            }
+        };
+        const handleKeyDown = (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                confirm();
+            } else if (event.key === "Escape") {
+                event.preventDefault();
+                cancel();
+            }
+        };
+        const changeKind = () => {
+            input.value = componentNameSuggestion(kindSelect.value);
+            input.focus();
+            input.select();
+        };
+
+        kindSelect.value = createKindSuggestion();
+        input.value = componentNameSuggestion(kindSelect.value);
+        dialog.hidden = false;
+        confirmButton.addEventListener("click", confirm);
+        cancelButton.addEventListener("click", cancel);
+        dialog.addEventListener("click", clickOutside);
+        input.addEventListener("keydown", handleKeyDown);
+        kindSelect.addEventListener("change", changeKind);
+        input.focus();
+        input.select();
+    });
+}
+
+function createKindSuggestion() {
+    const selected = findComponent(state.selectedPath);
+    return selected?.kind?.startsWith("scriptcanvas")
+        ? "scriptcanvas-nodeable"
+        : selected?.kind === "autopackets"
+            ? "autopackets"
+        : "autocomponent";
+}
+
+function componentNameSuggestion(kind) {
+    const selected = findComponent(state.selectedPath);
+    if (!selected?.name) {
+        if (kind === "scriptcanvas-nodeable") {
+            return "NewNodeable";
+        }
+        if (kind === "autopackets") {
+            return "NewPackets";
+        }
+        return "NewNetworkComponent";
+    }
+
+    const baseName = selected.name.replace(/Component$/i, "").replace(/Nodeable$/i, "").replace(/Packets$/i, "") || selected.name;
+    if (kind === "autopackets") {
+        return `${baseName}Packets`;
+    }
+    return kind === "scriptcanvas-nodeable" ? `${baseName}Nodeable` : `${baseName}Component`;
+}
+
+function findCreatedComponent(project, request) {
+    const sanitizedName = request.name.replace(/[^A-Za-z0-9_]/g, "");
+    const expectedFileName = {
+        autopackets: `${sanitizedName}.AutoPackets.xml`,
+        "scriptcanvas-nodeable": `${sanitizedName}.ScriptCanvasNodeable.xml`,
+        autocomponent: `${sanitizedName.replace(/Component$/i, "")}Component.AutoComponent.xml`
+    }[request.kind];
+    return project.components.find((component) => component.fileName === expectedFileName) || null;
 }
 
 async function deleteComponent() {
@@ -501,7 +618,8 @@ function kindLabel(kind) {
         autocomponent: "AutoComponent",
         "scriptcanvas-nodeable": "ScriptCanvas Nodeable",
         "scriptcanvas-function": "ScriptCanvas Function",
-        "scriptcanvas-grammar": "ScriptCanvas Grammar"
+        "scriptcanvas-grammar": "ScriptCanvas Grammar",
+        autopackets: "AutoPackets"
     };
     return labels[kind] || "Autogen XML";
 }
@@ -512,7 +630,7 @@ function scanSummary(project, prefix) {
     }
 
     const errors = project.scanErrors?.length || 0;
-    const suffix = `${project.stats.autoComponentXmlCount} AutoComponent XML, ${project.stats.scriptCanvasXmlCount || 0} ScriptCanvas XML, ${project.stats.cmakeFileCount} CMake, ${project.stats.autoComponentJinjaCount} autogen Jinja${errors ? `, ${errors} scan skips/errors` : ""}`;
+    const suffix = `${project.stats.autoComponentXmlCount} AutoComponent XML, ${project.stats.scriptCanvasXmlCount || 0} ScriptCanvas XML, ${project.stats.autoPacketsXmlCount || 0} AutoPackets XML, ${project.stats.cmakeFileCount} CMake, ${project.stats.autoComponentJinjaCount} autogen Jinja${errors ? `, ${errors} scan skips/errors` : ""}`;
     return `${prefix} (${suffix})`;
 }
 
@@ -553,18 +671,29 @@ function renderEditor() {
         return;
     }
 
-    elements.editorPanel.appendChild(state.schema.name === "ScriptCanvas"
-        ? renderScriptCanvasRootSection(state.schema, state.document)
-        : renderComponentSection(state.schema, state.document));
+    elements.editorPanel.appendChild(renderRootSection(state.schema, state.document));
 
     for (const childSchema of state.schema.children) {
         elements.editorPanel.appendChild(renderCollectionSection(childSchema, state.document.children[childSchema.name]));
     }
 }
 
+function renderRootSection(schemaElement, data) {
+    if (schemaElement.name === "ScriptCanvas") {
+        return renderScriptCanvasRootSection(schemaElement, data);
+    }
+    if (schemaElement.name === "PacketGroup") {
+        return renderAutoPacketsRootSection(schemaElement, data);
+    }
+    return renderComponentSection(schemaElement, data);
+}
+
 function schemaForComponent(component) {
     if (component?.kind?.startsWith("scriptcanvas")) {
         return state.schemas.scriptcanvas || state.schema;
+    }
+    if (component?.kind === "autopackets") {
+        return state.schemas.autopackets || state.schema;
     }
 
     return state.schemas.autocomponent || state.schema;
@@ -672,6 +801,10 @@ function renderCollectionItem(schemaElement, item, index, onRemove) {
             return renderScriptCanvasEditAttributeItem(schemaElement, item, index, onRemove);
         case "Function":
             return renderScriptCanvasFunctionItem(schemaElement, item, index, onRemove);
+        case "Packet":
+            return renderAutoPacketsPacketItem(schemaElement, item, index, onRemove);
+        case "Member":
+            return renderAutoPacketsMemberItem(schemaElement, item, index, onRemove);
         case "Param":
             return renderParamItem(schemaElement, item, index, onRemove);
         case "Parameter":
@@ -801,6 +934,24 @@ function renderScriptCanvasRootSection(schemaElement, data) {
     const body = document.createElement("div");
     body.className = "scriptcanvas-root-editor";
     appendNamedField(body, schemaElement, data, "Include", "file-field");
+    section.appendChild(body);
+    return section;
+}
+
+function renderAutoPacketsRootSection(schemaElement, data) {
+    const section = document.createElement("section");
+    section.className = "form-section component-section";
+
+    const header = document.createElement("div");
+    header.className = "section-header";
+    header.innerHTML = "<div><h2>Packet Group</h2><p class=\"section-meta\">Packet id range and group identity</p></div>";
+    applyElementHelp(header, schemaElement.name);
+    section.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "autopackets-root-editor";
+    appendNamedField(body, schemaElement, data, "Name", "name-field");
+    appendNamedField(body, schemaElement, data, "PacketStart", "packet-start-field");
     section.appendChild(body);
     return section;
 }
@@ -1240,6 +1391,56 @@ function renderScriptCanvasFunctionItem(schemaElement, item, index, onRemove) {
     return article;
 }
 
+function renderAutoPacketsPacketItem(schemaElement, item, index, onRemove) {
+    const article = createCompactArticle("autopackets-packet-item");
+    article.appendChild(renderCompactTitle(item.attributes.Name || `Packet ${index + 1}`, onRemove));
+
+    const primary = document.createElement("div");
+    primary.className = "autopackets-packet-primary";
+    appendNamedField(primary, schemaElement, item, "Name", "name-field");
+
+    const handshakePacket = findAttribute(schemaElement, "HandshakePacket");
+    if (handshakePacket) {
+        const flags = createFlagGroup("Dispatch", "inline-flags", "Marks the packet as part of connection handshaking.");
+        flags.appendChild(renderCompactBoolean(handshakePacket, item, schemaElement.name));
+        primary.appendChild(flags);
+    }
+
+    article.appendChild(primary);
+    article.appendChild(renderDetails(schemaElement, item, new Set(["Name", "HandshakePacket"])));
+
+    for (const childSchema of schemaElement.children) {
+        article.appendChild(renderNestedCollection(childSchema, item.children[childSchema.name]));
+    }
+
+    return article;
+}
+
+function renderAutoPacketsMemberItem(schemaElement, item, index, onRemove) {
+    const article = createCompactArticle("autopackets-member-item");
+
+    const row = document.createElement("div");
+    row.className = "autopackets-member-row";
+    appendNamedField(row, schemaElement, item, "Type", "type-field");
+    appendNamedField(row, schemaElement, item, "Name", "name-field");
+    appendNamedField(row, schemaElement, item, "Init", "init-field");
+    appendNamedField(row, schemaElement, item, "Container", "container-field");
+    appendContainerCountField(row, schemaElement, item);
+    appendNamedField(row, schemaElement, item, "Min", "range-field", "Min");
+    appendNamedField(row, schemaElement, item, "Max", "range-field", "Max");
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "danger-button";
+    removeButton.type = "button";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", onRemove);
+    row.appendChild(removeButton);
+
+    article.appendChild(row);
+    article.appendChild(renderDetails(schemaElement, item, new Set(["Type", "Name", "Init", "Container", "Count", "Min", "Max"])));
+    return article;
+}
+
 function renderScriptCanvasParameterItem(schemaElement, item, index, onRemove) {
     const article = createCompactArticle("scriptcanvas-parameter-item");
     const row = document.createElement("div");
@@ -1472,6 +1673,17 @@ const ATTRIBUTE_HELP = {
     "Function.BranchWithValue": "Passes a value along with the generated branch result.",
     "Parameter.Name": "Name of the generated input value.",
     "Return.Name": "Name of the generated output value.",
+    "PacketGroup.Name": "Generated packet group and output file prefix.",
+    "PacketGroup.PacketStart": "First packet type value reserved for this group.",
+    "Packet.Name": "Generated packet class and packet type enum entry.",
+    "Packet.Desc": "Comment or documentation text emitted for this packet.",
+    "Packet.HandshakePacket": "Allows this packet to be dispatched during connection handshaking.",
+    "Member.Type": "C++ type serialized into the packet payload.",
+    "Member.Name": "Generated packet member field name.",
+    "Member.Init": "C++ initializer used for the generated member.",
+    "Member.Desc": "Comment or documentation text emitted for this member.",
+    "Member.Min": "Optional minimum bound used by packet serialization/validation.",
+    "Member.Max": "Optional maximum bound used by packet serialization/validation.",
     "Param.Name": "Name of the generated RPC parameter."
 };
 
@@ -1485,6 +1697,9 @@ const ELEMENT_HELP = {
     RemoteProcedure: "Generated network function call sent from one role and handled on another.",
     Param: "Parameter passed into a generated remote procedure.",
     ScriptCanvas: "Root settings for ScriptCanvas autogen XML files.",
+    PacketGroup: "AutoPackets root settings for generated AzNetworking packet classes.",
+    Packet: "Generated packet class and dispatch entry.",
+    Member: "Serialized field carried by a generated packet.",
     Class: "Generated or reflected ScriptCanvas nodeable/class definition.",
     Library: "ScriptCanvas function library include, namespace, and category grouping.",
     Function: "Function exposed by a ScriptCanvas function library.",
@@ -1660,7 +1875,7 @@ function createAttributeControl(attribute) {
     if (attribute.kind === "enum") {
         return document.createElement("select");
     }
-    if (attribute.name === "Description") {
+    if (attribute.name === "Description" || attribute.name === "Desc") {
         return document.createElement("textarea");
     }
 

@@ -55,6 +55,7 @@ app.on("window-all-closed", () => {
 ipcMain.handle("schema:loadDefault", async () => {
     const autoComponentPath = path.join(__dirname, "..", "schemas", "multiplayer-autocomponent.xsd");
     const scriptCanvasPath = path.join(__dirname, "..", "schemas", "scriptcanvas-autogen.xsd");
+    const autoPacketsPath = path.join(__dirname, "..", "schemas", "autopackets.xsd");
     return {
         filePath: autoComponentPath,
         text: await fs.readFile(autoComponentPath, "utf8"),
@@ -66,6 +67,10 @@ ipcMain.handle("schema:loadDefault", async () => {
             scriptcanvas: {
                 filePath: scriptCanvasPath,
                 text: await fs.readFile(scriptCanvasPath, "utf8")
+            },
+            autopackets: {
+                filePath: autoPacketsPath,
+                text: await fs.readFile(autoPacketsPath, "utf8")
             }
         }
     };
@@ -215,16 +220,17 @@ ipcMain.handle("component:create", async (_event, request) => {
         throw new Error("Open a project folder first.");
     }
 
-    const componentName = sanitizeComponentName(request.componentName || "NewComponent");
+    const componentKind = normalizeCreateKind(request.componentKind);
+    const componentName = sanitizeAutogenName(request.componentName || defaultAutogenName(componentKind), componentKind);
     const scan = await scanProject(currentProjectRoot);
     const targetCmake = chooseTargetCmake(scan, request.targetCmakePath);
 
     if (!targetCmake) {
-        throw new Error("No CMake file with AutoComponent entries was found.");
+        throw new Error("No CMake file with autogen XML entries was found.");
     }
 
     const relativeDirectory = chooseAutoComponentDirectory(targetCmake, scan);
-    const relativePath = path.posix.join(relativeDirectory, `${componentName}.AutoComponent.xml`);
+    const relativePath = path.posix.join(relativeDirectory, autogenFileName(componentName, componentKind));
     const filePath = path.resolve(path.dirname(targetCmake.path), toPlatformPath(relativePath));
 
     try {
@@ -237,9 +243,12 @@ ipcMain.handle("component:create", async (_event, request) => {
     }
 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, createComponentXml(componentName, inferNamespace(targetCmake, scan)), "utf8");
+    await fs.writeFile(filePath, createAutogenXml(componentName, componentKind, inferNamespace(targetCmake, scan)), "utf8");
     await addCmakeReference(targetCmake.path, relativePath);
-    return scanProject(currentProjectRoot);
+    return {
+        ...(await scanProject(currentProjectRoot)),
+        createdPath: path.normalize(filePath)
+    };
 });
 
 ipcMain.handle("component:delete", async (_event, filePath) => {
@@ -323,6 +332,7 @@ async function scanProject(projectRoot) {
             cmakeFileCount: cmakeFiles.length,
             autoComponentXmlCount: xmlFiles.filter(isAutoComponentXml).length,
             scriptCanvasXmlCount: xmlFiles.filter(isScriptCanvasAutogenXml).length,
+            autoPacketsXmlCount: xmlFiles.filter(isAutoPacketsXml).length,
             autoComponentJinjaCount: jinjaFiles.length,
             skippedDirectoryCount: scanErrors.filter((error) => error.type === "directory").length
         },
@@ -409,13 +419,17 @@ function isScriptCanvasAutogenXml(filePath) {
         || lowerPath.endsWith(".scriptcanvasgrammar.xml");
 }
 
+function isAutoPacketsXml(filePath) {
+    return filePath.toLowerCase().endsWith(".autopackets.xml");
+}
+
 function isAutogenXml(filePath) {
-    return isAutoComponentXml(filePath) || isScriptCanvasAutogenXml(filePath);
+    return isAutoComponentXml(filePath) || isScriptCanvasAutogenXml(filePath) || isAutoPacketsXml(filePath);
 }
 
 function isAutogenJinja(filePath) {
     const fileName = path.basename(filePath).toLowerCase();
-    return fileName.endsWith(".jinja") && (fileName.includes("autocomponent") || fileName.includes("scriptcanvas"));
+    return fileName.endsWith(".jinja") && (fileName.includes("autocomponent") || fileName.includes("scriptcanvas") || fileName.includes("autopacket"));
 }
 
 async function parseCmakeAutoComponentReferences(cmakePath, scanErrors = []) {
@@ -433,7 +447,7 @@ async function parseCmakeAutoComponentReferences(cmakePath, scanErrors = []) {
 
     const references = [];
     const seen = new Set();
-    const regex = /([A-Za-z0-9_./\\-]+\.(?:AutoComponent|ScriptCanvasNodeable|ScriptCanvasFunction|ScriptCanvasGrammar)\.xml)/gi;
+    const regex = /([A-Za-z0-9_./\\-]+\.(?:AutoComponent|AutoPackets|ScriptCanvasNodeable|ScriptCanvasFunction|ScriptCanvasGrammar)\.xml)/gi;
     let match;
 
     while ((match = regex.exec(text)) !== null) {
@@ -502,6 +516,9 @@ function autogenKind(filePath) {
     if (lowerPath.endsWith(".autocomponent.xml")) {
         return "autocomponent";
     }
+    if (lowerPath.endsWith(".autopackets.xml")) {
+        return "autopackets";
+    }
     if (lowerPath.endsWith(".scriptcanvasfunction.xml")) {
         return "scriptcanvas-function";
     }
@@ -517,6 +534,7 @@ function autogenKind(filePath) {
 function autogenBaseName(filePath) {
     return path.basename(filePath)
         .replace(/\.AutoComponent\.xml$/i, "")
+        .replace(/\.AutoPackets\.xml$/i, "")
         .replace(/\.ScriptCanvasNodeable\.xml$/i, "")
         .replace(/\.ScriptCanvasFunction\.xml$/i, "")
         .replace(/\.ScriptCanvasGrammar\.xml$/i, "");
@@ -572,7 +590,7 @@ async function addCmakeReference(cmakePath, relativePath) {
     let indent = "    ";
 
     lines.forEach((line, index) => {
-        if (line.includes(".AutoComponent.xml")) {
+        if (containsAutogenXmlReference(line)) {
             insertAt = index + 1;
             indent = line.match(/^\s*/)?.[0] || indent;
         }
@@ -587,12 +605,16 @@ async function addCmakeReference(cmakePath, relativePath) {
     await fs.writeFile(cmakePath, lines.join(newline), "utf8");
 }
 
+function containsAutogenXmlReference(line) {
+    return /\.(?:AutoComponent|AutoPackets|ScriptCanvasNodeable|ScriptCanvasFunction|ScriptCanvasGrammar)\.xml/i.test(line);
+}
+
 async function removeCmakeReference(cmakePath, componentPath) {
     const text = await fs.readFile(cmakePath, "utf8");
     const cmakeDirectory = path.dirname(cmakePath);
     const lines = text.split(/\r?\n/);
     const filtered = lines.filter((line) => {
-        const refs = Array.from(line.matchAll(/([A-Za-z0-9_./\\-]+\.(?:AutoComponent|ScriptCanvasNodeable|ScriptCanvasFunction|ScriptCanvasGrammar)\.xml)/gi));
+        const refs = Array.from(line.matchAll(/([A-Za-z0-9_./\\-]+\.(?:AutoComponent|AutoPackets|ScriptCanvasNodeable|ScriptCanvasFunction|ScriptCanvasGrammar)\.xml)/gi));
         if (refs.length === 0) {
             return true;
         }
@@ -608,12 +630,60 @@ function createComponentXml(componentName, namespaceName) {
     return `<?xml version="1.0"?>\n\n<Component\n    Name="${componentName}"\n    Namespace="${namespaceName}"\n    OverrideComponent="false"\n    OverrideController="false"\n    OverrideInclude=""\n    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n</Component>\n`;
 }
 
-function sanitizeComponentName(componentName) {
-    const sanitized = componentName.replace(/[^A-Za-z0-9_]/g, "");
-    if (!sanitized) {
-        throw new Error("Component name must contain letters, numbers, or underscores.");
+function createScriptCanvasNodeableXml(nodeableName, namespaceName) {
+    const qualifiedName = namespaceName ? `${namespaceName}::${nodeableName}` : nodeableName;
+    return `<?xml version="1.0"?>\n\n<ScriptCanvas xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n    <Class\n        Name="${nodeableName}"\n        QualifiedName="${qualifiedName}"\n        PreferredClassName="${nodeableName}"\n        Uuid="${generateUuid()}"\n        NodeableUuid="${generateUuid()}" />\n</ScriptCanvas>\n`;
+}
+
+function createAutoPacketsXml(packetGroupName) {
+    return `<?xml version="1.0"?>\n\n<PacketGroup Name="${packetGroupName}" PacketStart="0">\n</PacketGroup>\n`;
+}
+
+function createAutogenXml(name, kind, namespaceName) {
+    if (kind === "scriptcanvas-nodeable") {
+        return createScriptCanvasNodeableXml(name, namespaceName);
     }
-    return sanitized.endsWith("Component") ? sanitized : `${sanitized}Component`;
+    if (kind === "autopackets") {
+        return createAutoPacketsXml(name);
+    }
+
+    return createComponentXml(name, namespaceName);
+}
+
+function normalizeCreateKind(kind) {
+    return ["autocomponent", "autopackets", "scriptcanvas-nodeable"].includes(kind) ? kind : "autocomponent";
+}
+
+function defaultAutogenName(kind) {
+    if (kind === "autopackets") {
+        return "NewPackets";
+    }
+    return kind === "scriptcanvas-nodeable" ? "NewNodeable" : "NewComponent";
+}
+
+function sanitizeAutogenName(name, kind) {
+    const sanitized = name.replace(/[^A-Za-z0-9_]/g, "");
+    if (!sanitized) {
+        throw new Error("Name must contain letters, numbers, or underscores.");
+    }
+    if (kind === "autocomponent") {
+        return sanitized.endsWith("Component") ? sanitized : `${sanitized}Component`;
+    }
+    return sanitized;
+}
+
+function autogenFileName(name, kind) {
+    if (kind === "scriptcanvas-nodeable") {
+        return `${name}.ScriptCanvasNodeable.xml`;
+    }
+    if (kind === "autopackets") {
+        return `${name}.AutoPackets.xml`;
+    }
+    return `${name}.AutoComponent.xml`;
+}
+
+function generateUuid() {
+    return `{${require("crypto").randomUUID().toUpperCase()}}`;
 }
 
 function normalizeCmakePath(cmakePath) {
