@@ -4,6 +4,7 @@
   "description": "Schema-driven Electron editor for O3DE autogen XML files.",
   "main": "src/main.js",
   "private": true,
+  "license": "Apache-2.0 OR MIT",
   "scripts": {
     "start": "electron .",
     "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js"

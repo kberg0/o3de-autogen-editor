@@ -38,3 +38,7 @@ npm start
 - Use **Save** to write the XML.
 
 The app configures its form from the active XSD. The bundled schemas are intentionally readable so future autogen formats can be added without changing the renderer.
+
+## License
+
+This project follows the standard O3DE dual-license structure. See `LICENSE.txt`, `LICENSE_APACHE2.TXT`, and `LICENSE_MIT.TXT`.
