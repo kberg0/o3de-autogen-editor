@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="unqualified" attributeFormDefault="unqualified">
+    <xs:simpleType name="BooleanString">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReplicationEndpoint">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Authority"/>
+            <xs:enumeration value="Autonomous"/>
+            <xs:enumeration value="Client"/>
+            <xs:enumeration value="Server"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="RelationConstraint">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Required"/>
+            <xs:enumeration value="Weak"/>
+            <xs:enumeration value="Exclusive"/>
+            <xs:enumeration value="Incompatible"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PropertyContainer">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Object"/>
+            <xs:enumeration value="Array"/>
+            <xs:enumeration value="Vector"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="Component">
+        <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="ComponentRelation" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="Constraint" type="RelationConstraint" use="required"/>
+                        <xs:attribute name="HasController" type="BooleanString" use="optional"/>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Namespace" type="xs:string" use="optional"/>
+                        <xs:attribute name="Include" type="xs:string" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="Include" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="File" type="xs:string" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="ArchetypeProperty" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="Type" type="xs:string" use="required"/>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Init" type="xs:string" use="optional"/>
+                        <xs:attribute name="Container" type="PropertyContainer" use="optional" default="Object"/>
+                        <xs:attribute name="Count" type="xs:positiveInteger" use="optional"/>
+                        <xs:attribute name="IsPublic" type="BooleanString" use="optional" default="true"/>
+                        <xs:attribute name="ExposeToEditor" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="ExposeToScript" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="Description" type="xs:string" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="NetworkProperty" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="Type" type="xs:string" use="required"/>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Init" type="xs:string" use="optional"/>
+                        <xs:attribute name="ReplicateFrom" type="ReplicationEndpoint" use="required"/>
+                        <xs:attribute name="ReplicateTo" type="ReplicationEndpoint" use="required"/>
+                        <xs:attribute name="IsRewindable" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="IsPredictable" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="IsPublic" type="BooleanString" use="optional" default="true"/>
+                        <xs:attribute name="Container" type="PropertyContainer" use="optional" default="Object"/>
+                        <xs:attribute name="Count" type="xs:positiveInteger" use="optional"/>
+                        <xs:attribute name="ExposeToEditor" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="ExposeToScript" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="GenerateEventBindings" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="Description" type="xs:string" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="NetworkInput" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="Type" type="xs:string" use="required"/>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Init" type="xs:string" use="optional"/>
+                        <xs:attribute name="ExposeToScript" type="BooleanString" use="optional" default="false"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="RemoteProcedure" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Param" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="Type" type="xs:string" use="required"/>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="InvokeFrom" type="ReplicationEndpoint" use="required"/>
+                        <xs:attribute name="HandleOn" type="ReplicationEndpoint" use="required"/>
+                        <xs:attribute name="IsPublic" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="IsReliable" type="BooleanString" use="optional" default="true"/>
+                        <xs:attribute name="GenerateEventBindings" type="BooleanString" use="optional" default="true"/>
+                        <xs:attribute name="Description" type="xs:string" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+
+            <xs:attribute name="Name" type="xs:string" use="required"/>
+            <xs:attribute name="Namespace" type="xs:string" use="required"/>
+            <xs:attribute name="OverrideComponent" type="BooleanString" use="optional" default="false"/>
+            <xs:attribute name="OverrideController" type="BooleanString" use="optional" default="false"/>
+            <xs:attribute name="OverrideInclude" type="xs:string" use="optional"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

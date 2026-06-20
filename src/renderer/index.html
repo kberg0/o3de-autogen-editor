@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>O3DE AutoGen Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="rail" aria-label="Document actions">
+            <button id="openProjectButton" class="rail-button primary" title="Open Project" aria-label="Open Project">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <button id="newComponentButton" class="rail-button" title="Add AutoComponent" aria-label="Add AutoComponent">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>
+            </button>
+            <button id="openSchemaButton" class="rail-button" title="Open XSD" aria-label="Open XSD">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>
+            </button>
+            <button id="rescanButton" class="rail-button" title="Rescan Project" aria-label="Rescan Project">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.3 6.4"/><path d="M3 12A9 9 0 0 1 18.3 5.6"/><path d="M3 18v-5h5"/><path d="M21 6v5h-5"/></svg>
+            </button>
+            <div class="rail-separator"></div>
+            <button id="saveButton" class="rail-button primary" title="Save" aria-label="Save">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M7 3v6h8"/><path d="M7 21v-7h10v7"/></svg>
+            </button>
+        </aside>
+
+        <aside class="navigator">
+            <div class="brand">
+                <span class="brand-mark"></span>
+                <div>
+                    <h1>AutoGen</h1>
+                    <p id="projectLabel">Open a project folder</p>
+                </div>
+            </div>
+            <div class="project-tools">
+                <input id="componentFilter" type="search" placeholder="Filter components">
+                <select id="cmakeTargetSelect" title="CMake list for new components" aria-label="CMake list for new components"></select>
+                <div class="list-actions">
+                    <button id="addListButton" class="action-button">Add</button>
+                    <button id="deleteListButton" class="danger-button">Delete</button>
+                </div>
+            </div>
+            <div id="componentList" class="component-list" aria-label="Autogen XML files"></div>
+        </aside>
+
+        <main class="workspace">
+            <header class="topbar">
+                <div class="file-state">
+                    <span id="documentName" class="document-name">NewComponent.AutoComponent.xml</span>
+                    <span id="statusText" class="status-text">Ready</span>
+                </div>
+                <div class="mode-tabs" role="tablist" aria-label="Editor mode">
+                    <button id="editorTabButton" class="mode-tab active" type="button">Editor</button>
+                    <button id="xmlTabButton" class="mode-tab" type="button">Raw XML</button>
+                </div>
+                <div class="topbar-actions">
+                    <button id="deleteComponentButton" class="danger-button">Delete</button>
+                    <button id="copyXmlButton" class="text-button">Copy</button>
+                </div>
+            </header>
+
+            <section class="content-grid">
+                <div id="issuesBar" class="issues-bar">
+                    <div class="panel-title">
+                        <h2>Issues</h2>
+                        <span id="issueCount" class="badge">0</span>
+                    </div>
+                    <div id="issues" class="issues"></div>
+                </div>
+                <div id="editorPanel" class="editor-panel"></div>
+                <div id="rawXmlPanel" class="raw-xml-panel" hidden>
+                    <textarea id="rawXmlEditor" spellcheck="false"></textarea>
+                </div>
+                <aside id="emptyPanel" class="empty-workspace">
+                    <h2>Open a project to begin</h2>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

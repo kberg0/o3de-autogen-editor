@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xs:simpleType name="BooleanString">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+            <xs:enumeration value="True"/>
+            <xs:enumeration value="False"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ClassPreset">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value=""/>
+            <xs:enumeration value="compact"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="UuidString">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="ScriptCanvas">
+        <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="Class" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:choice minOccurs="0" maxOccurs="unbounded">
+                            <xs:element name="Input" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter" type="SlotParameter"/>
+                                        <xs:element name="Return" type="SlotParameter"/>
+                                        <xs:element name="Branch" type="BranchSlot"/>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="OutputName" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Hidden" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Output" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter" type="SlotParameter"/>
+                                        <xs:element name="Return" type="SlotParameter"/>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Type" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Hidden" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Branch" type="BranchSlot" minOccurs="0" maxOccurs="unbounded"/>
+                            <xs:element name="In" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter" type="SlotParameter"/>
+                                        <xs:element name="Return" type="SlotParameter"/>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Contracts" type="xs:string" use="optional"/>
+                                    <xs:attribute name="EditAttributes" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Hidden" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Out" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter" type="SlotParameter"/>
+                                        <xs:element name="Return" type="SlotParameter"/>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Contracts" type="xs:string" use="optional"/>
+                                    <xs:attribute name="EditAttributes" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Hidden" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="OutLatent" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter" type="SlotParameter"/>
+                                        <xs:element name="Return" type="SlotParameter"/>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Contracts" type="xs:string" use="optional"/>
+                                    <xs:attribute name="EditAttributes" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Hidden" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="SerializedProperty" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="EditProperty" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="EditAttribute">
+                                            <xs:complexType>
+                                                <xs:attribute name="Key" type="xs:string" use="required"/>
+                                                <xs:attribute name="Value" type="xs:string" use="required"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="FieldName" type="xs:string" use="optional"/>
+                                    <xs:attribute name="UiHandler" type="xs:string" use="optional"/>
+                                    <xs:attribute name="UIHandler" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Property" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="PropertyData">
+                                            <xs:complexType>
+                                                <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                                                    <xs:element name="EditAttribute">
+                                                        <xs:complexType>
+                                                            <xs:attribute name="Key" type="xs:string" use="required"/>
+                                                            <xs:attribute name="Value" type="xs:string" use="required"/>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="Name" type="xs:string" use="required"/>
+                                                <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                                <xs:attribute name="Serialize" type="BooleanString" use="optional"/>
+                                                <xs:attribute name="UIHandler" type="xs:string" use="optional"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Type" type="xs:string" use="required"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+                                    <xs:attribute name="IsInput" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="IsOutput" type="BooleanString" use="optional"/>
+                                    <xs:attribute name="DefaultValue" type="xs:string" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="PropertyInterface" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                    <xs:attribute name="Property" type="xs:string" use="required"/>
+                                    <xs:attribute name="Type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:choice>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="QualifiedName" type="xs:string" use="optional"/>
+                        <xs:attribute name="PreferredClassName" type="xs:string" use="optional"/>
+                        <xs:attribute name="Uuid" type="UuidString" use="optional"/>
+                        <xs:attribute name="Icon" type="xs:string" use="optional"/>
+                        <xs:attribute name="Category" type="xs:string" use="optional"/>
+                        <xs:attribute name="Namespace" type="xs:string" use="optional"/>
+                        <xs:attribute name="Description" type="xs:string" use="optional"/>
+                        <xs:attribute name="Base" type="xs:string" use="optional"/>
+                        <xs:attribute name="BaseClass" type="BooleanString" use="optional"/>
+                        <xs:attribute name="Preset" type="ClassPreset" use="optional"/>
+                        <xs:attribute name="NodeableUuid" type="UuidString" use="optional"/>
+                        <xs:attribute name="GraphEntryPoint" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="DynamicSlotOrdering" type="BooleanString" use="optional"/>
+                        <xs:attribute name="ExtendReflectionSerialize" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="ExtendReflectionEdit" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="ExtendReflectionBehavior" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="ExtendConfigureSlots" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="HideProperty" type="BooleanString" use="optional" default="false"/>
+                        <xs:attribute name="Version" type="xs:string" use="optional"/>
+                        <xs:attribute name="VersionConverter" type="xs:string" use="optional"/>
+                        <xs:attribute name="EventHandler" type="xs:string" use="optional"/>
+                        <xs:attribute name="EditAttributes" type="xs:string" use="optional"/>
+                        <xs:attribute name="Deprecated" type="BooleanString" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="Library" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Function" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                        <xs:element name="Parameter">
+                                            <xs:complexType>
+                                                <xs:attribute name="Name" type="xs:string" use="required"/>
+                                                <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                                <xs:attribute name="DefaultValue" type="xs:string" use="optional"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Out">
+                                            <xs:complexType>
+                                                <xs:attribute name="Name" type="xs:string" use="required"/>
+                                                <xs:attribute name="Description" type="xs:string" use="optional"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:choice>
+                                    <xs:attribute name="Name" type="xs:string" use="required"/>
+                                    <xs:attribute name="Branch" type="xs:string" use="optional"/>
+                                    <xs:attribute name="BranchWithValue" type="BooleanString" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="Include" type="xs:string" use="required"/>
+                        <xs:attribute name="Namespace" type="xs:string" use="required"/>
+                        <xs:attribute name="Category" type="xs:string" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+            <xs:attribute name="Include" type="xs:string" use="optional"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="SlotParameter">
+        <xs:attribute name="Name" type="xs:string" use="required"/>
+        <xs:attribute name="Type" type="xs:string" use="required"/>
+        <xs:attribute name="DefaultValue" type="xs:string" use="optional"/>
+        <xs:attribute name="Description" type="xs:string" use="optional"/>
+        <xs:attribute name="Shared" type="BooleanString" use="optional"/>
+        <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+        <xs:attribute name="HideInputField" type="BooleanString" use="optional"/>
+        <xs:attribute name="HideName" type="BooleanString" use="optional"/>
+    </xs:complexType>
+
+    <xs:complexType name="BranchSlot">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Parameter" type="SlotParameter"/>
+            <xs:element name="Return" type="SlotParameter"/>
+        </xs:choice>
+        <xs:attribute name="Name" type="xs:string" use="required"/>
+        <xs:attribute name="Description" type="xs:string" use="optional"/>
+        <xs:attribute name="DisplayGroup" type="xs:string" use="optional"/>
+    </xs:complexType>
+</xs:schema>
